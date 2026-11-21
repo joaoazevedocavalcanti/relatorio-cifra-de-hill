@@ -1,0 +1,336 @@
+\documentclass[a4paper,12pt,twocolumn]{article}
+
+% ---------- PACOTES ESSENCIAIS ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{lmodern}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{setspace}
+
+% ---------- CONFIGURAÇÃO DE PÁGINA E COLUNAS ----------
+\geometry{top=2.5cm, bottom=2.5cm, left=1.8cm, right=1.8cm, columnsep=0.8cm}
+\onehalfspacing
+
+% ---------- CORES PERSONALIZADAS ----------
+\definecolor{destaque}{RGB}{180,0,0} 
+
+% ---------- CAIXA PARA DESTAQUES ----------
+\newtcolorbox{caixadestaque}[1][]{
+  enhanced,
+  colback=destaque!5!white,
+  colframe=destaque!80!black,
+  boxrule=1pt,             
+  left=0.5em, right=0.5em, top=0.5em, bottom=0.5em,
+  sharp corners,
+  title=#1,
+  fonttitle=\bfseries
+}
+
+% ---------- CABEÇALHOS E RODAPÉS ----------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Projeto de Aplicações - 2026.1}
+\rhead{Fundamentos da Álgebra Linear}
+\rfoot{\thepage}
+
+\fancypagestyle{firstpage}{
+    \fancyhf{}
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+    \rfoot{\thepage}
+}
+
+% ---------- FORMATAÇÃO DOS TÍTULOS DE SEÇÃO ----------
+\titleformat{\section}{\normalfont\large\bfseries\color{destaque}}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries\color{destaque!80!black}}{\thesubsection}{1em}{}
+
+% =========================================================
+% INFORMAÇÕES DO PROJETO (TÍTULO E AUTORES)
+% =========================================================
+
+\title{
+    \vspace{-1.5cm}
+    \includegraphics[width=0.4\textwidth]{ufpe_cin (1).png}\\[1em]
+    \Large \textbf{Universidade Federal de Pernambuco -- UFPE}\\
+    \large Centro de Informática -- CIn\\[0.5cm]
+    \huge \textbf{Criptografia (Cifra de Hill)}
+}
+
+\author{
+    \textbf{Gustavo Franco Pires} \\ \small gfp@cin.ufpe.br \and
+    \textbf{João Azevedo Cavalcanti} \\ \small jac2@cin.ufpe.br \and
+    \textbf{João Victor S. B. dos Santos} \\ \small jvsbs@cin.ufpe.br \and
+    \textbf{Leonardo Portela Chiu} \\ \small lpc4@cin.ufpe.br
+}
+\date{\vspace{0.5em} \normalsize 2026} 
+
+\begin{document}
+
+\twocolumn[
+  \begin{@twocolumnfalse}
+    \maketitle
+    
+    \begin{abstract}
+        O presente projeto aborda a aplicação de conceitos da Álgebra Linear na Criptografia, mais especificamente utilizando a Cifra de Hill. O método ilustra a utilização de matrizes, multiplicações e cálculo de determinantes para codificação e decodificação de mensagens através de transformações lineares no espaço modular. São detalhados os processos matemáticos de cifragem usando matrizes chaves invertíveis módulo 26, bem como a vulnerabilidade do método a ataques de texto plano conhecido, evidenciando o vínculo direto entre a teoria matemática estudada e sua aplicação prática no mundo real.
+        
+        \vspace{0.5em}
+        \textbf{Palavras-chave:} Álgebra Linear, Criptografia, Cifra de Hill, Matrizes, Aritmética Modular.
+    \end{abstract}
+    \vspace{0.8cm}
+  \end{@twocolumnfalse}
+]
+
+\thispagestyle{firstpage}
+
+\section{Introdução à Criptografia de Hill}
+\subsection{Introdução e Contexto Histórico}
+A criptografia é a ciência e a arte de proteger a informação, transformando-a de modo a que apenas o destinatário legítimo, que possui o conhecimento de uma chave secreta, a consiga decifrar e ler. Desde a antiguidade, com métodos rudimentares como a Cifra de César, até aos complexos algoritmos digitais que protegem as transações bancárias atuais, a matemática tem sido o pilar fundamental da segurança da informação.
+
+No campo da Álgebra Linear, destaca-se a Cifra de Hill, desenvolvida pelo matemático Lester S. Hill em 1929. Na época, a maioria das cifras conhecidas substituía uma letra de cada vez (cifras monoalfabéticas), o que as tornava vulneráveis à análise de frequência de letras num idioma. A Cifra de Hill foi pioneira ao introduzir uma cifra poligráfica prática, ou seja, um sistema que processa blocos de várias letras simultaneamente. Esta abordagem baseia-se inteiramente em operações com matrizes e aritmética modular, o que aumentou significativamente a segurança da época.
+
+\subsection{O Alfabeto Numérico}
+Para que seja possível aplicar ferramentas matemáticas (como matrizes e vetores) a um texto literário, o primeiro passo consiste em converter os caracteres alfabéticos em entidades numéricas. Utilizaremos o alfabeto padrão de 26 letras, mapeando cada caractere para um número inteiro de 0 a 25. Dessa forma, garantimos uma correspondência direta ideal para a aritmética modular de base 26:
+
+\begin{center}
+A = 0 | B = 1 | C = 2 | D = 3 | E = 4 | F = 5 | G = 6 \\
+H = 7 | I = 8 | J = 9 | K = 10 | L = 11 | M = 12 | N = 13 \\
+O = 14 | P = 15 | Q = 16 | R = 17 | S = 18 | T = 19 | U = 20 \\
+V = 21 | W = 22 | X = 23 | Y = 24 | Z = 25
+\end{center}
+
+\subsection{Vetorização da Mensagem}
+Após a conversão numérica, o texto original (também chamado de texto limpo) é segmentado em blocos de tamanho constante `n'. O valor de n define a dimensão do espaço vetorial com que vamos trabalhar e determina o tamanho da matriz quadrada que será usada como chave. Cada bloco de letras é estruturado na forma de um vetor-coluna $P \in \mathbb{R}^n$.
+
+Exemplo Prático: Para ilustrar o funcionamento do nosso trabalho, escolhemos a palavra "HILL" e utilizaremos blocos de tamanho n = 2.
+
+\begin{itemize}
+    \item \textbf{Conversão de Letras para Números:} H $\rightarrow$ 7, I $\rightarrow$ 8, L $\rightarrow$ 11, L $\rightarrow$ 11
+    \item \textbf{Agrupamento em Blocos e Criação dos Vetores-Coluna:} Como n = 2, dividimos as 4 letras em dois blocos emparelhados de duas letras:
+    \begin{itemize}
+        \item Bloco 1 ("HI"): Composto por H (7) e I (8).
+        \item Bloco 2 ("LL"): Composto por L (11) e L (11).
+    \end{itemize}
+    \item \textbf{Montando os vetores-coluna matemáticos da nossa mensagem, obtemos:}
+    \begin{equation}
+        P_1 = \begin{pmatrix} 7 \\ 8 \end{pmatrix}, \quad P_2 = \begin{pmatrix} 11 \\ 11 \end{pmatrix}
+    \end{equation}
+\end{itemize}
+
+\section{O Processo de Criptografia}
+\subsection{Matriz Chave e seus Critérios}
+Para que o processo de criptografia utilizando a Cifra de Hill funcione, o elemento central é a escolha de uma \textbf{matriz codificadora}, que chamaremos de Matriz Chave (A). Essa matriz representa a transformação matemática responsável por modificar a mensagem original e gerar o texto criptografado. A matriz A deve ser uma matriz quadrada de ordem NxN, como por exemplo uma matriz 2x2 ou 3x3, formada por números inteiros. O tamanho N dessa matriz dita o tamanho do vetor-coluna, ou seja, em blocos de quantas letras a mensagem original será dividida e cifrada por vez. Ou seja, uma matriz 2x2 irá criptografar a mensagem em grupos de duas letras por vez, enquanto uma matriz 3x3 irá trabalhar com grupos de três letras.
+\begin{equation}
+A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}
+\end{equation}
+
+No entanto, a escolha da Matriz Chave não pode ser feita de forma aleatória. O critério mais rigoroso para a escolha da Matriz Chave é matemático: ela precisa obrigatoriamente ser \textbf{invertível módulo 26} (considerando o alfabeto padrão de 26 letras). Isso acontece, pois o processo de descriptografia depende da aplicação dessa matriz inversa para recuperar a mensagem original.
+
+Para que a matriz possua uma inversa, o determinante da matriz A, denotado por det(A), não pode ser igual a zero. Entretanto, como a Cifra de Hill trabalha usando aritmética modular, essa condição precisa ser adaptada. Para que exista uma inversa módulo 26, é necessário que o máximo divisor comum (MDC) entre o valor de det(A) e o número 26 deve ser exatamente 1. Em termos práticos, isso significa que o determinante da Matriz Chave não pode ser um número par, múltiplo de 2, e nem múltiplo de 13. Essa condição garante que exista um inverso multiplicativo do determinante dentro da aritmética modular, tornando possível o processo inverso de decodificação.
+
+\subsection{A Equação de Cifragem}
+Uma vez estabelecida e validada a Matriz Chave, inicia-se a etapa prática de codificação. Primeiramente, o texto original, chamado de \textbf{texto plano}, é convertido para uma representação numérica utilizando uma tabela de correspondência entre letras e números (sendo a mais comum A=0, B=1, ..., Z=25). Depois da conversão, a mensagem é dividida em blocos de tamanho N, formando vetores-coluna chamados de \textbf{vetores de mensagem (P)}.
+
+\begin{equation}
+P = \begin{pmatrix} p_{1} \\ p_{2
+\end{pmatrix}
+\end{equation}
+
+A cifragem ocorre estritamente através da operação multiplicação de matrizes. Para obter o vetor cifrado (C), multiplicamos a matriz chave A pelo vetor de mensagem P, baseando-se na seguinte equação algébrica:
+
+\begin{equation}
+C = A \cdot P
+\end{equation}
+
+Essa operação funciona como uma transformação linear: a matriz (A) altera matematicamente o vetor da mensagem original, gerando novos valores numéricos que escondem o conteúdo inicial. Na prática, cada elemento do vetor cifrado é obtido multiplicando os valores de uma linha da matriz pelos valores correspondentes da coluna do vetor mensagem e somando os resultados. O vetor obtido após essa multiplicação ainda não representa diretamente letras, pois alguns valores podem ultrapassar o intervalo permitido pelo alfabeto. Por isso, é aplicada a aritmética modular.
+
+\subsection{O Papel da Aritmética Modular}
+Ao realizarmos a multiplicação de matrizes $C = A \cdot P$, é esperado que os valores numéricos gerados no vetor C sejam altos, frequentemente ultrapassando a marca de 25, que representa a quantidade de letras disponíveis na nossa tabela alfabética. E para corrigir essa distorção e ciclar os números que introduzimos a aritmética modular. Aplicamos o conceito de \textit{módulo 26} aos elementos do vetor resultante C. Matematicamente, isso equivale a dividir cada número do vetor por 26 e extrair exclusivamente o resto dessa divisão inteira. Ao substituir os números brutos por seus respectivos restos, garantimos que todos os valores voltem a se enquadrar no intervalo de correspondência do nosso alfabeto. A partir desses novos números validados pelo módulo, as letras correspondentes são resgatadas, gerando o texto criptografado final.
+
+\section{O Processo de Descriptografia}
+\subsection{Inverso Multiplicativo}
+Na criptografia, o seu objetivo ao descriptografar é isolar a mensagem original, eliminando o efeito da chave que a embaralhou. No momento que a letra original foi multiplicada, ou seja, precisamos achar essa relação:
+
+Seja a um número inteiro pertencente ao conjunto de resíduos tal que $( a \cdot a^{-1}) = 1 \pmod m$. Temos que $a^{-1}$ é chamado de inversor multiplicativo ou recíproco.
+
+Na aritmética modular, o recíproco deve ser obrigatoriamente um número inteiro que, multiplicado pelo número original, deixa o resto igual a 1 quando dividido pelo módulo m.
+
+Ou seja, $( a \cdot a^{-1}) = (\text{múltiplo qualquer de } m) + 1$, implicando também que $(\text{múltiplo de } a) - (\text{múltiplo de } m) = 1$. Outra propriedade importante é que, assim como citado anteriormente, a ser invertível não pode ter primos em comum com o módulo m. Isso ocorre pois, se dois números compartilham uma base, qualquer combinação entre eles só consegue andar em "passos" do tamanho dessa base, nunca de 1 em 1.
+
+Exemplo: Seja $m = 26$, então seus fatores primos são 2 e 13.
+$a = 4$ (múltiplo de 2)
+(múltiplo de 4) - (múltiplo de 26) = $2 \cdot [(\text{múltiplo } 2) - (\text{múltiplo de } 13)]$. O resultado nunca resultará em 1. Isso vale assim como para os múltiplos de 13.
+
+\subsection{Matriz inversa}
+Podemos transformar $C = A \cdot P$ em $P = A^{-1} \cdot C \pmod{26}$.
+
+Para revelar a mensagem original, o processo é invertido: o vetor criptografado deve ser multiplicado pela matriz inversa módulo 26 ($A^{-1}$). Na Criptografia de Hill nós não podemos usar divisões nem frações, porque precisamos de números inteiros para representar letras. A base do processo usado é achar a inversa de ($A^{-1}$) por matriz adjunta e adaptá-la para a aritmética modular.
+
+A teoria subjacente à inversão matricial fundamenta-se na busca pela Matriz Identidade, o elemento neutro da álgebra linear, definida pela relação $A \cdot A^{-1} = I$. Pelo Teorema de Laplace, sabe-se que o produto de uma matriz pela sua respectiva Matriz Adjunta resulta em uma matriz escalar cujos elementos da diagonal principal são iguais ao determinante da matriz original ($A \cdot \text{Adj}(A) = \det(A) \cdot I$). Para isolar a Identidade, a álgebra clássica exige a divisão escalar da equação pelo determinante. No entanto, na modelagem da Cifra de Hill, devido ao domínio restrito do alfabeto criptográfico, a operação de divisão é substituída pela multiplicação do inverso multiplicativo modular do determinante. Essa adaptação teórica garante a reversibilidade da matriz adjunta sem a introdução de valores fracionários, mantendo todo o sistema contido no anel de inteiros módulo 26.
+
+Inicialmente a fórmula para achar a matriz inversa por adjunta é essa:
+\begin{equation}
+A^{-1} = \frac{1}{\det(A)} \cdot \text{Adj}(A)
+\end{equation}
+
+Porém, como em aritmética modular não permite frações, iremos substituir pelo recíproco modular do determinante, denotado por $\det(A)^{-1}$. Logo depois, multiplicarmos pela $\text{Adj}(A)$ com o resíduo do mod(26):
+\begin{equation}
+A^{-1} = \det(A)^{-1} \cdot \text{Adj}(A) \pmod{26}
+\end{equation}
+
+Se o resíduo de $\det(A) = ab - cd$ módulo de 26 não for divisível por 13 ou 2, então a sua inversa é dada por:
+\begin{equation}
+A^{-1} = (ad-bc)^{-1} \begin{pmatrix} d & -b \\ -c & a \end{pmatrix} \pmod{26}
+\end{equation}
+
+Uma excelente prática é sempre que achar a matriz inversa, verificar o seguinte teorema:
+\begin{equation}
+A \cdot A^{-1} = I \pmod{26}
+\end{equation}
+
+Após achar a matriz inversa o processo é resumidamente igual ao processo de criptografar:
+\begin{equation}
+P = A^{-1} \cdot C \pmod{26}
+\end{equation}
+
+\section{Exemplo Prático Completo}
+Com base em tudo que aprendemos até agora sobre Criptografia, sobretudo, Cifra de Hill, vamos exemplificar para ver se entendemos de fato.
+
+Exemplo: O professor Silvio queria testar se os seus alunos estavam dominando Cifra de Hill e ele passou 2 atividades para eles.
+
+Observações:
+\begin{itemize}
+    \item O alfabeto baseado vai seguir o padrão: A=1, B=2, \dots, Y=25, Z=0
+    \item As atividades abaixo deverão utilizar como matriz base a matriz abaixo:
+\end{itemize}
+\begin{equation}
+A = \begin{pmatrix} 5 & 6 \\ 2 & 3 \end{pmatrix}
+\end{equation}
+
+a) Cifrar a palavra MATEMATICA, tendo como base o que foi aprendido
+
+b) Decifrar a mensagem YLMCNFSV, tendo como base o que foi aprendido
+
+\subsection{Resolução das Atividades}
+\textbf{Atividade a)}
+
+Primeiro, antes de tudo, vamos converter as letras da palavra MATEMATICA em números.
+M = 13; A = 1; T = 20; E = 5; M = 13; A = 1; T = 20; I = 9; C = 3; A = 1 (Nota: a resolução assume a conversão das letras finais)
+
+Como se trata de uma matriz 2x2, então será uma Cifra de Hill de ordem 2. Logo, agrupamos as letras em pares. Cada par formará um vetor coluna como abaixo:
+\begin{equation}
+\begin{pmatrix} 13 \\ 1 \end{pmatrix}, \begin{pmatrix} 20 \\ 5 \end{pmatrix}, \begin{pmatrix} 13 \\ 1 \end{pmatrix}, \begin{pmatrix} 20 \\ 9 \end{pmatrix}, \begin{pmatrix} 3 \\ 1 \end{pmatrix}
+\end{equation}
+
+Após formar os vetores coluna, o próximo passo da resolução é multiplicar a matriz chave pelos vetores coluna para achar os vetores coluna cifrados. Após as multiplicações de matrizes, aplique o módulo 26.
+
+\begin{equation}
+\begin{pmatrix} 5 & 6 \\ 2 & 3 \end{pmatrix} \cdot \begin{pmatrix} 13 \\ 1 \end{pmatrix} = \begin{pmatrix} 71 \\ 29 \end{pmatrix} \rightarrow \begin{pmatrix} 19 \\ 3 \end{pmatrix} \rightarrow \text{SC}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 5 & 6 \\ 2 & 3 \end{pmatrix} \cdot \begin{pmatrix} 20 \\ 5 \end{pmatrix} = \begin{pmatrix} 130 \\ 55 \end{pmatrix} \rightarrow \begin{pmatrix} 0 \\ 3 \end{pmatrix} \rightarrow \text{ZC}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 5 & 6 \\ 2 & 3 \end{pmatrix} \cdot \begin{pmatrix} 13 \\ 1 \end{pmatrix} = \begin{pmatrix} 71 \\ 29 \end{pmatrix} \rightarrow \begin{pmatrix} 19 \\ 3 \end{pmatrix} \rightarrow \text{SC}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 5 & 6 \\ 2 & 3 \end{pmatrix} \cdot \begin{pmatrix} 20 \\ 9 \end{pmatrix} = \begin{pmatrix} 154 \\ 67 \end{pmatrix} \rightarrow \begin{pmatrix} 24 \\ 15 \end{pmatrix} \rightarrow \text{XO}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 5 & 6 \\ 2 & 3 \end{pmatrix} \cdot \begin{pmatrix} 3 \\ 1 \end{pmatrix} = \begin{pmatrix} 21 \\ 9 \end{pmatrix} \rightarrow \begin{pmatrix} 21 \\ 9 \end{pmatrix} \rightarrow \text{UI}
+\end{equation}
+
+Portanto, a resposta cifrada da atividade A ficará: SCZCSCXOUI
+
+\vspace{0.5cm}
+\textbf{Atividade b)}
+
+Para decifrar a mensagem YLMCNFSV, temos que fazer o processo inverso: encontrar a matriz inversa em módulo 26 e multiplicá-la pelos vetores cifrados.
+
+Calculando o determinante de A:
+det(A) = (5 . 3) - (6 . 2) = 15 - 12 = 3
+
+Para achar a matriz inversa, precisamos multiplicar a matriz adjunta pelo inverso do determinante. Porém, como não são aceitas frações em aritmética modular, ao invés disso, iremos substituir pelo recíproco modular do det(A). No caso dessa atividade, o recíproco modular é 9.
+
+Agora, vamos montar a matriz adjunta assim:
+\begin{equation}
+\text{Adj}(A) = \begin{pmatrix} 3 & -6 \\ -2 & 5 \end{pmatrix} \pmod{26} = \begin{pmatrix} 3 & 20 \\ 24 & 5 \end{pmatrix}
+\end{equation}
+
+Então, a matriz inversa será o resultado da multiplicação entre o recíproco modular do det(A) e a adj(A):
+\begin{equation}
+A^{-1} = 9 \cdot \begin{pmatrix} 3 & 20 \\ 24 & 5 \end{pmatrix} = \begin{pmatrix} 27 & 180 \\ 216 & 45 \end{pmatrix} = \begin{pmatrix} 1 & 24 \\ 8 & 19 \end{pmatrix}
+\end{equation}
+
+Logo após achar a matriz inversa, o próximo passo é converter as letras da mensagem criptografada em números e depois separá-las em pares de vetores:
+Y = 25; L = 12; M = 13; C = 3; N = 14; F = 6; S = 19; V = 22;
+
+Após formar os vetores coluna, o próximo passo da resolução é multiplicar a matriz inversa pelos vetores cifrados para achar os vetores originais. Após as multiplicações de matrizes, aplique o módulo 26.
+
+\begin{equation}
+\begin{pmatrix} 1 & 24 \\ 8 & 19 \end{pmatrix} \cdot \begin{pmatrix} 25 \\ 12 \end{pmatrix} = \begin{pmatrix} 313 \\ 428 \end{pmatrix} \rightarrow \begin{pmatrix} 1 \\ 12 \end{pmatrix} \rightarrow \text{AL}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 1 & 24 \\ 8 & 19 \end{pmatrix} \cdot \begin{pmatrix} 13 \\ 3 \end{pmatrix} = \begin{pmatrix} 85 \\ 161 \end{pmatrix} \rightarrow \begin{pmatrix} 7 \\ 5 \end{pmatrix} \rightarrow \text{GE}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 1 & 24 \\ 8 & 19 \end{pmatrix} \cdot \begin{pmatrix} 14 \\ 6 \end{pmatrix} = \begin{pmatrix} 158 \\ 226 \end{pmatrix} \rightarrow \begin{pmatrix} 2 \\ 18 \end{pmatrix} \rightarrow \text{BR}
+\end{equation}
+
+\begin{equation}
+\begin{pmatrix} 1 & 24 \\ 8 & 19 \end{pmatrix} \cdot \begin{pmatrix} 19 \\ 22 \end{pmatrix} = \begin{pmatrix} 547 \\ 570 \end{pmatrix} \rightarrow \begin{pmatrix} 1 \\ 24 \end{pmatrix} \rightarrow \text{AX}
+\end{equation}
+
+Portanto, a mensagem decifrada é ALGEBRAX (o X aparece pois, quando o número de letras em uma Cifra de Hill de ordem 2 é ímpar, temos que colocar uma letra pra completar os pares formados nos vetores coluna).
+
+\section{Conclusão}
+\textbf{Vantagens:}
+A Criptografia (Cifra de Hill) destaca-se pela sua capacidade de mascarar os padrões de linguagem. Isso torna o método altamente resistente aos ataques clássicos de análise de frequência de letras, que quebravam facilmente cifras mais antigas. Além disso, aumenta de forma significativa a complexidade do sistema.
+
+\textbf{Desvantagens:}
+Por outro lado, o método apresenta algumas desvantagens e vulnerabilidades matemáticas. A primeira limitação diz respeito à criação da chave: a matriz escolhida precisa ser obrigatoriamente invertível no módulo 26 (ou seja, seu determinante não deve ter fatores primos em comum com 26), o que restringe as opções de chaves válidas e exige cuidado na sua formulação. A falha mais crítica, no entanto, é a sua total vulnerabilidade ao Known-Plaintext Attack (KPA). Por ser um sistema puramente linear, um invasor que descubra um pequeno trecho da mensagem original e o seu correspondente cifrado consegue, através de cálculos básicos de matriz inversa, descobrir a chave secreta e comprometer todo o sistema, dependendo do tamanho da matriz chave.
+
+Em um cenário de análise criptográfica, um atacante pode obter uma parte da mensagem original juntamente com a sua respectiva versão criptografada. Isso pode acontecer quando existem trechos previsíveis de uma comunicação ou quando parte da mensagem é conhecida. O objetivo do ataque é descobrir a matriz A, que é justamente a transformação linear responsável por realizar a criptografia.
+
+Considerando uma Matriz Chave de ordem 2x2, temos:
+\begin{equation}
+A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}
+\end{equation}
+
+Essa matriz possui quatro valores desconhecidos. Portanto, é necessário obter informações suficientes da mensagem original e da mensagem cifrada para determinar esses valores. Para isso, o atacante reúne blocos conhecidos da mensagem original e organiza esses valores em uma matriz P. Da mesma forma, os blocos correspondentes da mensagem criptografada são organizados em uma matriz C. Partindo da equação original, isolando a Matriz Chave utilizando a inversa da matriz P, chegamos a seguinte equação:
+\begin{equation}
+A = C \cdot P^{-1} \pmod{26}
+\end{equation}
+
+Ou seja, conhecendo um conjunto suficiente de pares entre texto original e texto criptografado, é possível recuperar a Matriz Chave através de operações de Álgebra Linear. Para que esse cálculo seja possível, a matriz formada pelo texto original precisa possuir uma inversa no módulo 26. Isso significa que o determinante da matriz P não pode ser múltiplo de 2 nem de 13. Caso essa condição não seja satisfeita, aquele conjunto específico de letras não permite encontrar a matriz chave. Porém, outro agrupamento de letras pode gerar uma matriz P diferente e possibilitar a recuperação da chave.
+
+Em resumo, o estudo da Criptografia (Cifra de Hill) ilustra de forma clara os conceitos fundamentais de Álgebra Linear, como operações com matrizes, determinantes e inversão podem ser aplicados diretamente na área da criptografia, através do uso da aritmética modular.
+
+\begin{thebibliography}{9}
+
+\bibitem{anton} 
+ANTON, Howard; RORRES, Chris. 
+\textit{Álgebra Linear com Aplicações}. 
+10ª Edição, Bookman, 2012.
+
+\bibitem{strang} 
+STRANG, Gilbert. 
+\textit{Introdução à Álgebra Linear}. 
+4ª Edição, Wellesley-Cambridge Press, 2016.
+
+\end{thebibliography}
+
+\end{document}
